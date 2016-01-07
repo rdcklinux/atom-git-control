@@ -12,6 +12,7 @@ ProjectDialog = require './dialogs/project-dialog'
 BranchDialog = require './dialogs/branch-dialog'
 CommitDialog = require './dialogs/commit-dialog'
 ConfirmDialog = require './dialogs/confirm-dialog'
+DeleteDialog = require './dialogs/delete-dialog'
 MergeDialog = require './dialogs/merge-dialog'
 FlowDialog = require './dialogs/flow-dialog'
 PushDialog = require './dialogs/push-dialog'
@@ -166,10 +167,14 @@ class GitControlView extends View
       git.deleteBranch(params.branch).then => @update()
       return
 
-    @contentView.append new ConfirmDialog
+    forceDeleteCallback = (params) =>
+      git.forceDeleteBranch(params.branch).then => @update()
+
+    @contentView.append new DeleteDialog
       hdr: 'Delete Branch'
       msg: "Are you sure you want to delete the local branch '#{branch}'?"
       cb: confirmCb
+      fdCb: forceDeleteCallback
       branch: branch
     return
 
@@ -212,6 +217,11 @@ class GitControlView extends View
 
     files = @filesView.getSelected()
 
-    git.reset(files.all).then => @update()
-
-    return
+    atom.confirm
+      message: "Reset will erase changes since the last commit in the selected files. Are you sure?"
+      buttons:
+        Cancel: =>
+          return
+        Reset: =>
+          git.reset(files.all).then => @update()
+          return
